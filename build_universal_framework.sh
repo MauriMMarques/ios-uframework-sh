@@ -4,10 +4,14 @@
 
 # Search for path parameters
 PROJECT_PATH=
+CONFIGURATION=
 while [ "$1" != "" ]; do
     case $1 in
         -p | --path )
         PROJECT_PATH=$2
+        ;;
+        -c | --config )
+        CONFIGURATION=$2
         ;;
     esac
     shift
@@ -62,33 +66,33 @@ mkdir ${BUILD_DIR}
 xcodebuild clean build \
   ${PROJECT_PARAM_TYPE} ${XCODE_PROJECT_PATH} \
   -scheme ${FRAMEWORK_NAME} \
-  -configuration Release \
+  -configuration ${CONFIGURATION} \
   -sdk iphonesimulator \
   -derivedDataPath derived_data
 
 # create folder to store compiled framework for simulator
 mkdir ${BUILD_DIR}/simulator
 # copy compiled framework for simulator into our build folder
-cp -r derived_data/Build/Products/Release-iphonesimulator/${FRAMEWORK_NAME}.framework ${BUILD_DIR}/simulator
+cp -r derived_data/Build/Products/${CONFIGURATION}-iphonesimulator/${FRAMEWORK_NAME}.framework ${BUILD_DIR}/simulator
 
 ####################### Build framework for devices #############################
 
 xcodebuild clean build \
   ${PROJECT_PARAM_TYPE}  ${XCODE_PROJECT_PATH} \
   -scheme ${FRAMEWORK_NAME} \
-  -configuration Release \
+  -configuration ${CONFIGURATION} \
   -sdk iphoneos \
   -derivedDataPath derived_data
 
 # create folder to store compiled framework for simulator
 mkdir ${BUILD_DIR}/devices
 # copy compiled framework for simulator into our build folder
-cp -r derived_data/Build/Products/Release-iphoneos/${FRAMEWORK_NAME}.framework ${BUILD_DIR}/devices
+cp -r derived_data/Build/Products/${CONFIGURATION}-iphoneos/${FRAMEWORK_NAME}.framework ${BUILD_DIR}/devices
 
 # Copy each headers to temporary space
 mkdir -p "${BUILD_DIR}/tmp/Headers/simulator"
 mkdir -p "${BUILD_DIR}/tmp/Headers/device"
-cp -R "${BUILD_DIR}/simulator/${FRAMEWORK_NAME}.framework/Headers/${FRAMEWORK_NAME}-Swift.h" "${BUILD_DIR}/tmp/Headers/simulator/${FRAMEWORK_NAME}-Swift.h"
+cp -r "${BUILD_DIR}/simulator/${FRAMEWORK_NAME}.framework/Headers/${FRAMEWORK_NAME}-Swift.h" "${BUILD_DIR}/tmp/Headers/simulator/${FRAMEWORK_NAME}-Swift.h"
 cp -r "${BUILD_DIR}/devices/${FRAMEWORK_NAME}.framework/Headers/${FRAMEWORK_NAME}-Swift.h" "${BUILD_DIR}/tmp/Headers/device/${FRAMEWORK_NAME}-Swift.h"
 # Merge
 touch "${BUILD_DIR}/tmp/${FRAMEWORK_NAME}-Swift.h"
@@ -105,6 +109,7 @@ mkdir ${BUILD_DIR}/universal
 
 # copy device framework into universal folder
 cp -r ${BUILD_DIR}/devices/${FRAMEWORK_NAME}.framework ${BUILD_DIR}/universal/
+
 # create framework binary compatible with simulators and devices, and replace binary in unviersal framework
 lipo -create \
   ${BUILD_DIR}/simulator/${FRAMEWORK_NAME}.framework/${FRAMEWORK_NAME} \
@@ -119,9 +124,9 @@ rm -rf "${BUILD_DIR}/tmp"
 # copy simulator Swift public interface to universal framework
 cp ${BUILD_DIR}/simulator/${FRAMEWORK_NAME}.framework/Modules/${FRAMEWORK_NAME}.swiftmodule/* ${BUILD_DIR}/universal/${FRAMEWORK_NAME}.framework/Modules/${FRAMEWORK_NAME}.swiftmodule
 
-cp -r ${BUILD_DIR}/universal/${FRAMEWORK_NAME}.framework ${BASE_PROJECT_PATH}/
+cp -r ${BUILD_DIR}/universal/${FRAMEWORK_NAME}.framework ${BASE_PROJECT_PATH}
 
-echo "${FRAMEWORK_NAME}.framework placed in ${BASE_PROJECT_PATH}/"
+echo "${FRAMEWORK_NAME}.framework placed in ${BASE_PROJECT_PATH}"
 
 # Delete build and derived_data folders 
 rm -r ${BUILD_DIR}
